@@ -4,17 +4,16 @@ project(SorenLib VERSION 1.0 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 
 add_library(SorenLib SHARED
-		include/Topic.hpp
 		src/Thread.cpp
-		include/Thread.hpp
 		src/Topic.cpp
 		src/Logger.cpp
-		include/Logger.hpp
-		test.cpp
+		src/LogDestination.cpp
 )
-target_include_directories(SorenLib PUBLIC include)
+target_include_directories(SorenLib PUBLIC include PRIVATE include/internal)
 
-add_executable(test test.cpp)
-target_include_directories(test PRIVATE include)
+add_executable(test test.cpp
+		src/LogDestination.cpp
+		src/Logger.cpp)
+target_include_directories(test PRIVATE include include/internal)
 target_link_libraries(test PRIVATE SorenLib)
 

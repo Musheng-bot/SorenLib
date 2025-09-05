@@ -6,11 +6,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <fstream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <map>
-#include <unistd.h>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -44,21 +40,18 @@ namespace SorenLib {
 		return write_error;
 	}
 
-	Logger::Logger(const Level lowest_level, const std::string &log_file) :
+	Logger::Logger(const std::string &log_file, const Level lowest_level) :
 		lowest_level_(lowest_level) {
 		if (log_file.empty()) {
-			return;
+			log_destination_ = std::make_unique<StdoutLogDestination>();
+		}
+		else {
+			log_destination_ = std::make_unique<FileLogDestination>(log_file);
 		}
 
-		fout_.open(log_file.c_str(), std::ofstream::out | std::ofstream::app | std::ofstream::binary);
-		if (fout_.fail()) {
-			std::cerr << file_open_error() << std::endl;
-		}
 	}
 
-	Logger::~Logger() {
-		fout_.close();
-	}
+	Logger::~Logger() = default;
 
 	void Logger::trace(const char *message, ...)  {
 		va_list args;
@@ -118,7 +111,6 @@ namespace SorenLib {
 
 		return ss.str();
 	}
-
 	std::string Logger::formatString(const char *fmt, va_list args) {
 		va_list args_copy;
 		va_copy(args_copy, args);
@@ -136,12 +128,8 @@ namespace SorenLib {
 		return str;
 	}
 
-	void Logger::log(const Level log_level, const char *message, va_list args) noexcept{
+	void Logger::log(const Level log_level, const char *message, va_list args) const noexcept{
 		std::unique_lock lock(mutex());
-		if (!fout_.is_open()) {
-			std::cerr << file_open_error() << std::endl;
-			return;
-		}
 		if (log_level < lowest_level_) {
 			std::cerr << log_level_error() << std::endl;
 			return;
@@ -152,10 +140,7 @@ namespace SorenLib {
 			'['	+ getTimeStamp() + "] " +
 			formatString(message, args) + '\n';
 
-		fout_ << log_line << std::flush;
-		if (fout_.bad()) {
-			std::cerr << write_error() << std::endl;
-		}
+		this->log_destination_->write(log_line);
 	}
 
 	std::mutex &Logger::mutex() {

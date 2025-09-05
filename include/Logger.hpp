@@ -4,9 +4,10 @@
 
 #ifndef SORENLIB_LOGGER_HPP
 #define SORENLIB_LOGGER_HPP
+#include <memory>
 #include <string>
 #include <mutex>
-#include <fstream>
+#include "LogDestination.hpp"
 
 namespace SorenLib {
 	class Logger {
@@ -20,7 +21,7 @@ namespace SorenLib {
 				FATAL,
 			};
 
-			explicit Logger(Level lowest_level = FATAL, const std::string &log_file = std::string());
+			explicit Logger(const std::string &log_file = std::string(), Level lowest_level = TRACE);
 			~Logger();
 			void trace(const char *message, ...);
 			void debug(const char *message, ...);
@@ -29,12 +30,12 @@ namespace SorenLib {
 			void error(const char *message, ...);
 			void fatal(const char *message, ...);
 		private:
-			std::fstream fout_;
+			std::unique_ptr<LogDestination> log_destination_;
 			Level lowest_level_;
 
 			static std::string getTimeStamp();
 			static std::string formatString(const char *fmt, va_list args) ;
-			void log(Level log_level, const char *message, va_list args) noexcept;
+			void log(Level log_level, const char *message, va_list args) const noexcept;
 			static std::mutex &mutex();
 	};
 } // SorenLib
