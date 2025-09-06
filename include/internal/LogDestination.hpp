@@ -9,9 +9,6 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <thread>
-
-#include "Thread.hpp"
 
 namespace SorenLib {
 	class LogDestination {

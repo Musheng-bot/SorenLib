@@ -10,6 +10,8 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <unistd.h>
 
 namespace SorenLib {
 	const auto &level_to_str() {
@@ -90,26 +92,48 @@ namespace SorenLib {
 	}
 
 	std::string Logger::getTimeStamp() {
-		auto now = std::chrono::system_clock::now();
-		auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+		const auto now = std::chrono::system_clock::now();
+		const auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
 
-		auto epoch = now_ms.time_since_epoch();
-		auto value = std::chrono::duration_cast<std::chrono::seconds>(epoch);
-		std::time_t time = value.count();
+		// 分离秒和毫秒部分
+		const auto epoch = now_ms.time_since_epoch();
+		const auto secs = std::chrono::duration_cast<std::chrono::seconds>(epoch);
+		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch) - secs;
 
-		std::tm* local_time = std::localtime(&time);
-		if (local_time == nullptr) {
-			return "Invalid time"; // 处理转换失败的情况
+		// 转换为time_t（秒级时间戳）
+		std::time_t time = std::chrono::system_clock::to_time_t(now);
+
+		// 线程安全处理：使用thread_local缓冲区存储tm结构
+		thread_local std::tm tm_buf{};
+
+#ifdef _WIN32
+		// Windows平台使用localtime_s（C11标准，VS支持）
+		if (localtime_s(&tm_buf, &time) != 0) {
+			return "Invalid time";
 		}
+#else
+		// POSIX平台（Linux/macOS）使用localtime_r
+		if (localtime_r(&time, &tm_buf) == nullptr) {
+			return "Invalid time";
+		}
+#endif
 
-		auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch) % 1000;
-
+		// 格式化时间字符串
 		std::stringstream ss;
-		ss << std::put_time(local_time, "%Y-%m-%d %H:%M:%S")
+		ss << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S")
 		   << "." << std::setw(3) << std::setfill('0') << ms.count();
 
 		return ss.str();
 	}
+
+	std::string Logger::getProcessId() {
+		return "Process " + std::to_string(getpid());
+	}
+
+	std::string Logger::getThreadId() {
+		return "Thread " + std::to_string(syscall(SYS_gettid));
+	}
+
 	std::string Logger::formatString(const char *fmt, va_list args) {
 		va_list args_copy;
 		va_copy(args_copy, args);
@@ -136,6 +160,8 @@ namespace SorenLib {
 		const std::string log_line =
 			"[" + level_to_str().at(log_level) + "] " +
 			"["	+ getTimeStamp() + "] " +
+			"[" + getProcessId() + "] " +
+			"[" + getThreadId() + "] " +
 			"[" + source_ + "] " +
 			formatString(message, args) + '\n';
 

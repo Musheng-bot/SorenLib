@@ -39,6 +39,8 @@ namespace SorenLib {
 			std::string source_;
 
 			static std::string getTimeStamp();
+			static std::string getProcessId();
+			static std::string getThreadId();
 			static std::string formatString(const char *fmt, va_list args) ;
 			void log(Level log_level, const char *message, va_list args) const noexcept;
 			Logger(std::string source, ThreadSafeLogDestination &&logger, Level lowest_level);
