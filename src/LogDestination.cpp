@@ -68,6 +68,7 @@ namespace SorenLib {
 	}
 
 	ThreadSafeLogDestination ThreadSafeLogDestination::getInstance(const std::string &dest) {
+		std::unique_lock lock(dests_mutex());
 		if (!dests().contains(dest)) {
 			dests().emplace(dest, ThreadSafeLogDestination(std::make_unique<FileLogDestination>(dest)));
 		}
@@ -80,8 +81,9 @@ namespace SorenLib {
 		return ThreadSafeLogDestination(impl_->clone(), mutex_);
 	}
 
-	ThreadSafeLogDestination::ThreadSafeLogDestination(const ThreadSafeLogDestination &other) {
-		*this = other.clone();
+	ThreadSafeLogDestination::ThreadSafeLogDestination(const ThreadSafeLogDestination &other) :
+		impl_(other.impl_->clone()),
+		mutex_(other.mutex_) {
 	}
 
 	ThreadSafeLogDestination & ThreadSafeLogDestination::operator=(const ThreadSafeLogDestination &other) {
@@ -115,5 +117,10 @@ namespace SorenLib {
 			{"error", ThreadSafeLogDestination(std::make_unique<ErrorLogDestination>())},
 		};
 		return dests;
+	}
+
+	std::mutex &ThreadSafeLogDestination::dests_mutex() {
+		static std::mutex dests_mutex;
+		return dests_mutex;
 	}
 } // SorenLib

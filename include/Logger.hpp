@@ -33,6 +33,12 @@ namespace SorenLib {
 			void warn(const char *message, ...) const;
 			void error(const char *message, ...) const;
 			void fatal(const char *message, ...) const;
+
+			void setLowestLevel(Level level);
+			void setOutputFormat(std::string fmt);
+			void setSource(std::string source);
+			void setTimeFormat(std::string fmt);
+			void resetOutputDestination(const std::string &file);
 		private:
 			Level lowest_level_;
 			ThreadSafeLogDestination log_destination_;

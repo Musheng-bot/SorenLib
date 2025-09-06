@@ -5,6 +5,7 @@
 #ifndef SORENLIB_LOGDESTINATION_HPP
 #define SORENLIB_LOGDESTINATION_HPP
 #include <string>
+#include <ostream>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -62,6 +63,7 @@ namespace SorenLib {
 			mutable std::shared_ptr<std::mutex> mutex_;
 			explicit ThreadSafeLogDestination(std::unique_ptr<LogDestination> impl, std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>());
 			static std::map<std::string, ThreadSafeLogDestination> &dests();
+			static std::mutex &dests_mutex();
 	};
 } // SorenLib
 

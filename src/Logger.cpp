@@ -3,6 +3,7 @@
 //
 
 #include "Logger.hpp"
+#include "Logger.hpp"
 #include <cstdarg>
 #include <cstring>
 #include <fstream>
@@ -14,16 +15,11 @@
 #include <unistd.h>
 
 namespace SorenLib {
-	const auto &level_to_str() {
-		static const std::map<Logger::Level, std::string> level_to_str = {
-			{Logger::TRACE, "TRACE"},
-			{Logger::DEBUG, "DEBUG"},
-			{Logger::INFO, "INFO"},
-			{Logger::WARN, "WARN"},
-			{Logger::ERROR, "ERROR"},
-			{Logger::FATAL, "FATAL"},
-		};
-		return level_to_str;
+	const auto &level_to_str(Logger::Level level) {
+		static const std::string level_to_str[] =
+			{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+
+		return level_to_str[static_cast<int>(level)];
 	}
 
 	Logger::Logger(const std::string &log_file, std::string source, const Level lowest_level) :
@@ -37,10 +33,9 @@ namespace SorenLib {
 	Logger::~Logger() = default;
 
 	Logger::Logger(const Logger &other):
-		lowest_level_(TRACE),
-		log_destination_(ThreadSafeLogDestination::getInstance(""))
-	{
-		*this = other.clone(other.source_);
+		lowest_level_(other.lowest_level_),
+		log_destination_(other.log_destination_.clone()),
+		source_(other.source_) {
 	}
 
 	Logger & Logger::operator=(const Logger &other) {
@@ -131,7 +126,11 @@ namespace SorenLib {
 	}
 
 	std::string Logger::getThreadId() {
+#ifdef _WIN32
+		return "Thread " + std::to_string(GetCurrentThreadId());
+#else
 		return "Thread " + std::to_string(syscall(SYS_gettid));
+#endif
 	}
 
 	std::string Logger::formatString(const char *fmt, va_list args) {
@@ -143,22 +142,19 @@ namespace SorenLib {
 			va_end(args);
 			return "Fail to format the string!";
 		}
-		auto buffer = new char[length + 1];
-		vsnprintf(buffer, length + 1, fmt, args);
+		std::string buffer(length, '\0');
+		vsnprintf(buffer.data(), length + 1, fmt, args);
 		va_end(args_copy);
-		std::string str(buffer);
-		delete[] buffer;
-		return str;
+		return buffer;
 	}
 
 	void Logger::log(const Level log_level, const char *message, va_list args) const noexcept{
 		if (log_level < lowest_level_) {
-			std::cerr << "Over the highest level allowed!" << std::endl;
 			return;
 		}
 
 		const std::string log_line =
-			"[" + level_to_str().at(log_level) + "] " +
+			"[" + level_to_str(log_level) + "] " +
 			"["	+ getTimeStamp() + "] " +
 			"[" + getProcessId() + "] " +
 			"[" + getThreadId() + "] " +
