@@ -23,67 +23,66 @@ namespace SorenLib {
 		};
 		return level_to_str;
 	}
-	const auto &log_level_error() {
-		static const std::string log_level_error = "Over the highest level allowed!";
-		return log_level_error;
-	}
-	const auto &file_open_error() {
-		static const std::string file_open_error = "Fail to open the log file!";
-		return file_open_error;
-	}
-	const auto &format_error() {
-		static const std::string format_error = "Fail to format the string!";
-		return format_error;
-	}
-	const auto &write_error() {
-		static const std::string write_error = "Failed to write to the log file!";
-		return write_error;
-	}
 
-	Logger::Logger(const std::string &log_file, const Level lowest_level) :
-		lowest_level_(lowest_level) {
-		if (log_file.empty()) {
-			log_destination_ = std::make_unique<StdoutLogDestination>();
-		}
-		else {
-			log_destination_ = std::make_unique<FileLogDestination>(log_file);
-		}
-
-	}
+	Logger::Logger(const std::string &log_file, std::string source, const Level lowest_level) :
+		source_(std::move(source)),
+		lowest_level_(lowest_level) ,
+		log_destination_(
+			ThreadSafeLogDestination::getInstance(log_file)
+		)
+	{}
 
 	Logger::~Logger() = default;
 
-	void Logger::trace(const char *message, ...)  {
+	Logger::Logger(const Logger &other):
+		lowest_level_(TRACE),
+		log_destination_(ThreadSafeLogDestination::getInstance(""))
+	{
+		*this = other.clone(other.source_);
+	}
+
+	Logger & Logger::operator=(const Logger &other) {
+		if (&other != this) {
+			*this = other.clone(other.source_);
+		}
+		return *this;
+	}
+
+	Logger Logger::clone(const std::string& source) const {
+		return {source, log_destination_.clone(), lowest_level_};
+	}
+
+	void Logger::trace(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(TRACE, message, args);
 		va_end(args);
 	}
-	void Logger::info(const char *message, ...)  {
+	void Logger::info(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(INFO, message, args);
 		va_end(args);
 	}
-	void Logger::warn(const char *message, ...)  {
+	void Logger::warn(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(WARN, message, args);
 		va_end(args);
 	}
-	void Logger::error(const char *message, ...)  {
+	void Logger::error(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(ERROR, message, args);
 		va_end(args);
 	}
-	void Logger::fatal(const char *message, ...)  {
+	void Logger::fatal(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(FATAL, message, args);
 		va_end(args);
 	}
-	void Logger::debug(const char *message, ...)  {
+	void Logger::debug(const char *message, ...) const {
 		va_list args;
 		va_start(args, message);
 		log(DEBUG, message, args);
@@ -118,7 +117,7 @@ namespace SorenLib {
 		va_end(args_copy);
 		if (length < 0) {
 			va_end(args);
-			return format_error();
+			return "Fail to format the string!";
 		}
 		auto buffer = new char[length + 1];
 		vsnprintf(buffer, length + 1, fmt, args);
@@ -129,22 +128,24 @@ namespace SorenLib {
 	}
 
 	void Logger::log(const Level log_level, const char *message, va_list args) const noexcept{
-		std::unique_lock lock(mutex());
 		if (log_level < lowest_level_) {
-			std::cerr << log_level_error() << std::endl;
+			std::cerr << "Over the highest level allowed!" << std::endl;
 			return;
 		}
 
 		const std::string log_line =
-			'[' + level_to_str().at(log_level) + "] " +
-			'['	+ getTimeStamp() + "] " +
+			"[" + level_to_str().at(log_level) + "] " +
+			"["	+ getTimeStamp() + "] " +
+			"[" + source_ + "] " +
 			formatString(message, args) + '\n';
 
-		this->log_destination_->write(log_line);
+		this->log_destination_.write(log_line);
 	}
 
-	std::mutex &Logger::mutex() {
-		static std::mutex mtx;
-		return mtx;
+	Logger::Logger(std::string source, ThreadSafeLogDestination &&logger, const Level lowest_level) :
+		source_(std::move(source)),
+		lowest_level_(lowest_level),
+		log_destination_(std::move(logger))
+	{
 	}
 } // SorenLib

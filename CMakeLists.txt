@@ -8,12 +8,14 @@ add_library(SorenLib SHARED
 		src/Topic.cpp
 		src/Logger.cpp
 		src/LogDestination.cpp
+		include/internal/LogDestination.hpp
 )
 target_include_directories(SorenLib PUBLIC include PRIVATE include/internal)
 
 add_executable(test test.cpp
 		src/LogDestination.cpp
-		src/Logger.cpp)
+		src/Logger.cpp
+		include/internal/LogDestination.hpp)
 target_include_directories(test PRIVATE include include/internal)
 target_link_libraries(test PRIVATE SorenLib)
 
