@@ -99,7 +99,7 @@ namespace SorenLib {
 	ThreadSafeLogDestination & ThreadSafeLogDestination::operator=(ThreadSafeLogDestination &&other) noexcept = default;
 
 	void ThreadSafeLogDestination::write(const std::string &message) const {
-		std::unique_lock<std::mutex> lock(*mutex_);
+		std::unique_lock lock(*mutex_);
 		this->impl_->write(message);
 	}
 

@@ -23,3 +23,13 @@ add_executable(test test.cpp
 target_include_directories(test PRIVATE include include/internal)
 target_link_libraries(test PRIVATE SorenLib)
 
+file(GLOB HEADERS /include/*.hpp)
+include(GNUInstallDirs)
+install(FILES {HEADERS}
+	DESTINATION {CMAKE_INSTALL_INCLUDEDIR}/SorenLib
+)
+install(TARGETS SorenLib
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+

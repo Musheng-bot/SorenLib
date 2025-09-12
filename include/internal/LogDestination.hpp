@@ -5,11 +5,12 @@
 #ifndef SORENLIB_LOGDESTINATION_HPP
 #define SORENLIB_LOGDESTINATION_HPP
 #include <string>
-#include <ostream>
 #include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
+
+//LogDestination相关类只负责把数据写到指定的位置
 
 namespace SorenLib {
 	class LogDestination {
@@ -58,9 +59,11 @@ namespace SorenLib {
 			ThreadSafeLogDestination(ThreadSafeLogDestination &&other) noexcept;
 			ThreadSafeLogDestination &operator=(ThreadSafeLogDestination &&other) noexcept;
 			void write(const std::string& message) const;
+
 		private:
 			std::unique_ptr<LogDestination> impl_;
 			mutable std::shared_ptr<std::mutex> mutex_;
+
 			explicit ThreadSafeLogDestination(std::unique_ptr<LogDestination> impl, std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>());
 			static std::map<std::string, ThreadSafeLogDestination> &dests();
 			static std::mutex &dests_mutex();
