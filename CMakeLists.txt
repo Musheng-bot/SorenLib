@@ -8,9 +8,7 @@ add_library(SorenLib SHARED
 		src/Topic.cpp
 		src/Logger.cpp
 		src/LogDestination.cpp
-		include/internal/LogDestination.hpp
 		src/LogStream.cpp
-		include/internal/LogStream.hpp
 )
 target_include_directories(SorenLib PUBLIC include PRIVATE include/internal)
 

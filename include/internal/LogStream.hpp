@@ -11,11 +11,13 @@ namespace SorenLib {
 	class Stream {
 		public:
 			enum class StreamState : int {
-				GOOD = 0,
-				ERROR = 1,
-				FAIL = 2,
-				Eof = 4
+				STATE_GOOD = 0,
+				STATE_ERROR = 1,
+				STATE_FAIL = 2,
+				STATE_EOF = 4
 			};
+
+
 
 		private:
 	};

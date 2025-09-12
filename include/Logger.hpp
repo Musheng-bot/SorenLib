@@ -19,14 +19,14 @@ namespace SorenLib {
 				FATAL,
 			};
 
-			explicit Logger(const std::string &log_file = std::string(), std::string source = "Unknown", Level lowest_level = TRACE);
+			Logger(Destination destination, const std::string &log_file, std::string source, Level lowest_level = TRACE);
+
 			~Logger();
 			Logger(const Logger &);
 			Logger &operator=(const Logger &);
 			Logger(Logger &&) = default;
 			Logger &operator=(Logger &&) = default;
 
-			[[nodiscard]] Logger clone(const std::string& source) const;
 			void trace(const char *message, ...) const;
 			void debug(const char *message, ...) const;
 			void info(const char *message, ...) const;
@@ -48,8 +48,11 @@ namespace SorenLib {
 			static std::string getProcessId();
 			static std::string getThreadId();
 			static std::string formatString(const char *fmt, va_list args) ;
+
 			void log(Level log_level, const char *message, va_list args) const noexcept;
 			Logger(std::string source, ThreadSafeLogDestination &&logger, Level lowest_level);
+			[[nodiscard]] Logger clone(const std::string& source) const;
+
 	};
 } // SorenLib
 

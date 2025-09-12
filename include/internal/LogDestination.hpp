@@ -13,6 +13,12 @@
 //LogDestination相关类只负责把数据写到指定的位置
 
 namespace SorenLib {
+	enum Destination {
+		FILE,
+		STDOUT,
+		STDERR,
+	};
+
 	class LogDestination {
 		public:
 			LogDestination();
@@ -51,13 +57,14 @@ namespace SorenLib {
 
 	class ThreadSafeLogDestination {
 		public:
-			static ThreadSafeLogDestination getInstance(const std::string &dest);
+			static ThreadSafeLogDestination getInstance(Destination dest, const std::string &file);
 			~ThreadSafeLogDestination();
-			ThreadSafeLogDestination clone() const;
 			ThreadSafeLogDestination(const ThreadSafeLogDestination &other);
 			ThreadSafeLogDestination &operator=(const ThreadSafeLogDestination &other);
 			ThreadSafeLogDestination(ThreadSafeLogDestination &&other) noexcept;
 			ThreadSafeLogDestination &operator=(ThreadSafeLogDestination &&other) noexcept;
+
+			ThreadSafeLogDestination clone() const;
 			void write(const std::string& message) const;
 
 		private:

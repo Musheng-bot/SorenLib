@@ -67,12 +67,16 @@ namespace SorenLib {
 		return std::make_unique<ErrorLogDestination>();
 	}
 
-	ThreadSafeLogDestination ThreadSafeLogDestination::getInstance(const std::string &dest) {
+	ThreadSafeLogDestination ThreadSafeLogDestination::getInstance(Destination dest, const std::string &file) {
 		std::unique_lock lock(dests_mutex());
-		if (!dests().contains(dest)) {
-			dests().emplace(dest, ThreadSafeLogDestination(std::make_unique<FileLogDestination>(dest)));
+		const char *log = file.c_str();
+		if (dest == STDOUT) {
+			log = "stdout";
 		}
-		return dests().at(dest).clone();
+		else if (dest == STDERR) {
+			log = "stderr";
+		}
+		return dests().at(std::string(log)).clone();
 	}
 
 	ThreadSafeLogDestination::~ThreadSafeLogDestination() = default;
@@ -112,7 +116,6 @@ namespace SorenLib {
 
 	std::map<std::string, ThreadSafeLogDestination> &ThreadSafeLogDestination::dests() {
 		static std::map<std::string, ThreadSafeLogDestination> dests = {
-			{"", ThreadSafeLogDestination(std::make_unique<StdoutLogDestination>())},
 			{"stdout", ThreadSafeLogDestination(std::make_unique<StdoutLogDestination>())},
 			{"error", ThreadSafeLogDestination(std::make_unique<ErrorLogDestination>())},
 		};

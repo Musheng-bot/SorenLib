@@ -3,7 +3,6 @@
 //
 
 #include "Logger.hpp"
-#include "Logger.hpp"
 #include <cstdarg>
 #include <cstring>
 #include <fstream>
@@ -14,21 +13,28 @@
 #include <sstream>
 #include <unistd.h>
 
+#define LOG(level, upper_level) 	\
+	void Logger::level(const char *message, ...) const {\
+		va_list args;\
+		va_start(args, message);\
+		log(upper_level, message, args);\
+		va_end(args);\
+	}
+
 namespace SorenLib {
 	const auto &level_to_str(Logger::Level level) {
 		static const std::string level_to_str[] =
 			{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
-
 		return level_to_str[static_cast<int>(level)];
 	}
 
-	Logger::Logger(const std::string &log_file, std::string source, const Level lowest_level) :
-		source_(std::move(source)),
-		lowest_level_(lowest_level) ,
+	Logger::Logger(Destination destination, const std::string &log_file, std::string source, const Level lowest_level) :
+		lowest_level_(lowest_level),
 		log_destination_(
-			ThreadSafeLogDestination::getInstance(log_file)
-		)
-	{}
+			ThreadSafeLogDestination::getInstance(destination, log_file)
+		),
+		source_(std::move(source)) {
+	}
 
 	Logger::~Logger() = default;
 
@@ -45,45 +51,15 @@ namespace SorenLib {
 		return *this;
 	}
 
-	Logger Logger::clone(const std::string& source) const {
-		return {source, log_destination_.clone(), lowest_level_};
-	}
+	LOG(trace, TRACE)
+	LOG(debug, DEBUG)
+	LOG(info, INFO)
+	LOG(warn, WARN)
+	LOG(error, ERROR)
+	LOG(fatal, FATAL)
 
-	void Logger::trace(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(TRACE, message, args);
-		va_end(args);
-	}
-	void Logger::info(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(INFO, message, args);
-		va_end(args);
-	}
-	void Logger::warn(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(WARN, message, args);
-		va_end(args);
-	}
-	void Logger::error(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(ERROR, message, args);
-		va_end(args);
-	}
-	void Logger::fatal(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(FATAL, message, args);
-		va_end(args);
-	}
-	void Logger::debug(const char *message, ...) const {
-		va_list args;
-		va_start(args, message);
-		log(DEBUG, message, args);
-		va_end(args);
+	void Logger::setLowestLevel(Level level) {
+		lowest_level_ = level;
 	}
 
 	std::string Logger::getTimeStamp() {
@@ -167,7 +143,11 @@ namespace SorenLib {
 	Logger::Logger(std::string source, ThreadSafeLogDestination &&logger, const Level lowest_level) :
 		source_(std::move(source)),
 		lowest_level_(lowest_level),
-		log_destination_(std::move(logger))
-	{
+		log_destination_(std::move(logger)){
 	}
+
+	Logger Logger::clone(const std::string& source) const {
+		return {source, log_destination_.clone(), lowest_level_};
+	}
+
 } // SorenLib
