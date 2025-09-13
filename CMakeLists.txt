@@ -5,23 +5,29 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_library(SorenLib SHARED
 		src/Thread.cpp
-		src/Topic.cpp
 		src/Logger.cpp
 		src/LogDestination.cpp
-		src/LogStream.cpp
+		include/internal/Publisher.hpp
+		include/internal/Subscriber.hpp
+		include/TopicInterface.hpp
+		include/internal/Topic.hpp
 )
-target_include_directories(SorenLib PUBLIC include PRIVATE include/internal)
+target_include_directories(SorenLib
+	PUBLIC
+		include
+	PRIVATE
+		include/internal)
 
 add_executable(test test.cpp
 		src/LogDestination.cpp
 		src/Logger.cpp
 		include/internal/LogDestination.hpp
-		src/LogStream.cpp
-		include/internal/LogStream.hpp)
+)
 target_include_directories(test PRIVATE include include/internal)
 target_link_libraries(test PRIVATE SorenLib)
 
 file(GLOB HEADERS /include/*.hpp)
+
 include(GNUInstallDirs)
 install(FILES {HEADERS}
 	DESTINATION {CMAKE_INSTALL_INCLUDEDIR}/SorenLib

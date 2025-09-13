@@ -32,7 +32,7 @@ namespace SorenLib {
 			std::cerr << "The log file " << file_name_ << " is not opened." << std::endl;
 			return;
 		}
-		fout_ << message << std::flush;
+		fout_ << message ;
 	}
 
 	std::unique_ptr<LogDestination> FileLogDestination::clone() const {
@@ -48,7 +48,7 @@ namespace SorenLib {
 	StdoutLogDestination::~StdoutLogDestination() = default;
 
 	void StdoutLogDestination::write(const std::string &message) {
-		std::cout << message << std::flush;
+		std::cout << message ;
 	}
 
 	std::unique_ptr<LogDestination> StdoutLogDestination::clone() const {
@@ -60,7 +60,7 @@ namespace SorenLib {
 	ErrorLogDestination::~ErrorLogDestination() = default;
 
 	void ErrorLogDestination::write(const std::string &message) {
-		std::cerr << message << std::flush;
+		std::cerr << message ;
 	}
 
 	std::unique_ptr<LogDestination> ErrorLogDestination::clone() const {

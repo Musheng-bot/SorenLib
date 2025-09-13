@@ -11,7 +11,11 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #define LOG(level, upper_level) 	\
 	void Logger::level(const char *message, ...) const {\
@@ -62,7 +66,15 @@ namespace SorenLib {
 		lowest_level_ = level;
 	}
 
-	std::string Logger::getTimeStamp() {
+	void Logger::setSource(std::string source) {
+		source_ = std::move(source);
+	}
+
+	void Logger::setTimeFormat(std::string fmt) {
+		time_format_ = std::move(fmt);
+	}
+
+	std::string Logger::getTimeStamp() const {
 		const auto now = std::chrono::system_clock::now();
 		const auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
 
@@ -91,14 +103,18 @@ namespace SorenLib {
 
 		// 格式化时间字符串
 		std::stringstream ss;
-		ss << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S")
+		ss << std::put_time(&tm_buf, time_format_.c_str())
 		   << "." << std::setw(3) << std::setfill('0') << ms.count();
 
 		return ss.str();
 	}
 
 	std::string Logger::getProcessId() {
+#ifdef _WIN32
+		return "Process " + std::to_string(static_cast<int>(GetCurrentProcessId());
+#else
 		return "Process " + std::to_string(getpid());
+#endif
 	}
 
 	std::string Logger::getThreadId() {
@@ -109,7 +125,7 @@ namespace SorenLib {
 #endif
 	}
 
-	std::string Logger::formatString(const char *fmt, va_list args) {
+	std::string Logger::formatOutputMessage(const char *fmt, va_list args) {
 		va_list args_copy;
 		va_copy(args_copy, args);
 		const int length = vsnprintf(nullptr, 0, fmt, args_copy);
@@ -135,7 +151,7 @@ namespace SorenLib {
 			"[" + getProcessId() + "] " +
 			"[" + getThreadId() + "] " +
 			"[" + source_ + "] " +
-			formatString(message, args) + '\n';
+			formatOutputMessage(message, args) + '\n';
 
 		this->log_destination_.write(log_line);
 	}

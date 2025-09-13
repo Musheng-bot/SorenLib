@@ -70,6 +70,7 @@ namespace SorenLib {
 		while (!isStopRequested() && loop_times_) {
 			run();
 			--loop_times_;
+			std::this_thread::sleep_for(10ms);
 		}
 		running_ = false;
 	}

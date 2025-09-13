@@ -13,7 +13,7 @@
 - [ ] 异步写入，缓冲机制，异常处理
 - [ ] 支持线程局部上下文
 - [ ] 错误处理，单次日志的原子化
-- [ ] 性能优化
+- [x] 性能优化 -- 利用C++的流对象本身的性能，我只负责写入，性能通过流对象本身提高。
 
 ## Thread
 
@@ -21,6 +21,10 @@
 
 - 对标准库的进一步封装，提供更清晰的操作接口和更强的可控性和安全性
 - 通过继承重写`run()`方法实现自定义线程任务
+
+### 头文件
+
+- `Thread.hpp`
 
 ### 接口
 
@@ -70,3 +74,64 @@ int main() {
 }
 ```
 
+## Pub-sub model
+
+### 介绍
+
+- 是基于`发布者-订阅者模式`的相关实现。
+- 支持`多线程`情况下的操作
+- 接口实现`简单`，内存无需手动管理，足够`安全`
+
+### 头文件
+
+- `TopicInterface.hpp`
+
+### 常用接口
+
+| 函数原型                                                                                                                                                                                          |        函数名         |   功能    |                                                                                    参数                                                                                    |                        返回值                        |  访问权限  | 备注 |
+|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------:|:-------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------:|:------:|:--:|
+| 	template \<typename MsgType\> <br/>PublisherPtr\<MsgType\> createPublisher(const std::string &topic_name, const int queue_length = 10)                                                       | `createPublisher`  |  创建发布者  |                                       `topic_name`: 话题名，不同话题之间主要靠话题名标识<br />`queue_length`: 话题消息队列长度，默认为10,传入的信息超过队列长度会舍弃旧信息，引入新信息                                       | `PublisherPtr<MsgType>`: 是储存发布者对象的shared_ptr共享指针  | public |    |
+| template \<typename MsgType\> <br />SubscriberPtr\<MsgType\> createSubscriber(const std::string &topic_name, typename Subscriber\<MsgType\>::callback_t callback,const int queue_length = 10) | `createSubscriber` | 创建话题订阅者 | `topic_name`: 话题名，不同话题之间主要靠话题名标识<br />`callback`: 类型为`std::function<void(const MsgType &msg)`，是话题接收到信息后的回调函数<br />`queue_length`: 话题消息队列长度，默认为10,传入的信息超过队列长度会舍弃旧信息，引入新信息 | `SubscriberPtr<MsgType>`: 是储存订阅者对象的shared_ptr共享指针 | public |    |
+| 	void Publisher::publish(const MsgType &msg)                                                                                                                                                  |     `publish`      | 发布者发布信息 |                                                                              `msg`: 需要发布的信息                                                                              |                                                   | public |    |
+
+
+
+### 使用示例
+
+```c++
+#include <iostream>
+
+#include "Thread.hpp"
+#include "TopicInterface.hpp"
+
+using namespace std::chrono_literals;
+
+typedef struct {
+	int x;
+	int y;
+} point_msg;
+
+class Sub : public SorenLib::Thread {
+	public:
+		void run() override {
+
+		}
+	private:
+		SorenLib::SubscriberPtr<point_msg> sub_ = SorenLib::createSubscriber<point_msg>("test", [](const point_msg& msg) {
+			std::cout << msg.x << ", " << msg.y << std::endl;
+		});
+};
+
+int main() {
+	auto pub = SorenLib::createPublisher<point_msg>("test");
+	Sub sub;
+	sub.start();
+	pub->publish(point_msg{1, 2});
+	pub->publish(point_msg{2, 3});
+	pub->publish(point_msg{3, 4});
+	pub->publish(point_msg{4, 5});
+	std::this_thread::sleep_for(100ms);
+	sub.join();
+	return 0;
+}
+```
