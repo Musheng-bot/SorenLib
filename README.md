@@ -2,6 +2,31 @@
 
 这是一个常用组件的集合，包含一些对标准库的进一步封装，以及一些好用功能的封装
 
+## 安装
+
+首先输入以下指令：
+
+```shell
+cd SorenLib
+mkdir build
+cd build
+cmake ..
+make
+sudo cmake --install . --config Release
+```
+
+然后在`CMakeLists.txt`中添加如下内容
+
+```cmake
+find_package(SorenLib REQUIRED)
+
+# 示例
+add_executable(main main.cpp)
+target_link_libraries(SorenLib PUBLIC SorenLib)
+```
+
+这样就可以正常使用`SorenLib`库了。
+
 ## Logger
 
 待更新的内容：

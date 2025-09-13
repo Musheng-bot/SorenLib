@@ -1,0 +1,9 @@
+# 这是一个极简的模板文件，用于 configure_package_config_file 函数
+
+# 导入目标文件
+include("${CMAKE_CURRENT_LIST_DIR}/SorenLibTargets.cmake")
+
+# 验证目标是否存在
+if(NOT TARGET SorenLib::SorenLib)
+    message(FATAL_ERROR "SorenLib 库未正确安装，未找到目标 SorenLib::SorenLib")
+endif()
