@@ -5,12 +5,14 @@
 #ifndef SORENLIB_TOPIC_HPP
 #define SORENLIB_TOPIC_HPP
 
-#include <condition_variable>
 #include <memory>
 #include <queue>
 #include <unordered_map>
 #include <vector>
 #include <mutex>
+#include <atomic>
+#include <thread>
+#include <chrono>
 
 #include "Subscriber.hpp"
 

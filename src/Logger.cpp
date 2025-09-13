@@ -66,12 +66,20 @@ namespace SorenLib {
 		lowest_level_ = level;
 	}
 
+	void Logger::setOutputFormat(std::string fmt) {
+		output_format_ = std::move(fmt);
+	}
+
 	void Logger::setSource(std::string source) {
 		source_ = std::move(source);
 	}
 
 	void Logger::setTimeFormat(std::string fmt) {
 		time_format_ = std::move(fmt);
+	}
+
+	void Logger::resetOutputDestination(const Destination destination, const std::string &file) {
+		log_destination_ = ThreadSafeLogDestination::getInstance(destination, file);
 	}
 
 	std::string Logger::getTimeStamp() const {
