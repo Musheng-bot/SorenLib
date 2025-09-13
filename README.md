@@ -7,7 +7,7 @@
 首先输入以下指令：
 
 ```shell
-git clone git@github.com:Musheng-bot/SorenLib.git
+git clone https://github.com/Musheng-bot/SorenLib.git
 cd SorenLib
 mkdir build
 cd build
