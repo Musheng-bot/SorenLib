@@ -34,17 +34,15 @@ namespace SorenLib {
 
 	Logger::Logger(Destination destination, const std::string &log_file, std::string source, const Level lowest_level) :
 		lowest_level_(lowest_level),
-		log_destination_(
-			ThreadSafeLogDestination::getInstance(destination, log_file)
-		),
 		source_(std::move(source)) {
+		log_destinations_.emplace_back(ThreadSafeLogDestination::getInstance(destination, log_file));
 	}
 
 	Logger::~Logger() = default;
 
 	Logger::Logger(const Logger &other):
 		lowest_level_(other.lowest_level_),
-		log_destination_(other.log_destination_.clone()),
+		log_destinations_(other.log_destinations_),
 		source_(other.source_) {
 	}
 
@@ -78,8 +76,17 @@ namespace SorenLib {
 		time_format_ = std::move(fmt);
 	}
 
-	void Logger::resetOutputDestination(const Destination destination, const std::string &file) {
-		log_destination_ = ThreadSafeLogDestination::getInstance(destination, file);
+	void Logger::addOutputDestination(const Destination destination, const std::string &file) {
+		auto dest = ThreadSafeLogDestination::getInstance(destination, file);
+		log_destinations_.emplace_back(dest);
+	}
+
+	void Logger::removeOutputDestination(Destination destination, const std::string &file) {
+		auto dest = ThreadSafeLogDestination::getInstance(destination, file);
+		auto it = std::find(log_destinations_.begin(), log_destinations_.end(), dest);
+		if (it != log_destinations_.end()) {
+			log_destinations_.erase(it);
+		}
 	}
 
 	std::string Logger::getTimeStamp() const {
@@ -89,7 +96,7 @@ namespace SorenLib {
 		// 分离秒和毫秒部分
 		const auto epoch = now_ms.time_since_epoch();
 		const auto secs = std::chrono::duration_cast<std::chrono::seconds>(epoch);
-		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch) - secs;
+		[[maybe_unused]] const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch) - secs;
 
 		// 转换为time_t（秒级时间戳）
 		std::time_t time = std::chrono::system_clock::to_time_t(now);
@@ -111,25 +118,24 @@ namespace SorenLib {
 
 		// 格式化时间字符串
 		std::stringstream ss;
-		ss << std::put_time(&tm_buf, time_format_.c_str())
-		   << "." << std::setw(3) << std::setfill('0') << ms.count();
+		ss << std::put_time(&tm_buf, time_format_.c_str());
 
 		return ss.str();
 	}
 
 	std::string Logger::getProcessId() {
 #ifdef _WIN32
-		return "Process " + std::to_string(static_cast<int>(GetCurrentProcessId());
+		return std::to_string(static_cast<int>(GetCurrentProcessId());
 #else
-		return "Process " + std::to_string(getpid());
+		return std::to_string(getpid());
 #endif
 	}
 
 	std::string Logger::getThreadId() {
 #ifdef _WIN32
-		return "Thread " + std::to_string(GetCurrentThreadId());
+		return std::to_string(GetCurrentThreadId());
 #else
-		return "Thread " + std::to_string(syscall(SYS_gettid));
+		return std::to_string(syscall(SYS_gettid));
 #endif
 	}
 
@@ -153,25 +159,73 @@ namespace SorenLib {
 			return;
 		}
 
-		const std::string log_line =
-			"[" + level_to_str(log_level) + "] " +
-			"["	+ getTimeStamp() + "] " +
-			"[" + getProcessId() + "] " +
-			"[" + getThreadId() + "] " +
-			"[" + source_ + "] " +
-			formatOutputMessage(message, args) + '\n';
+		// const std::string log_line =
+		// 	"[" + level_to_str(log_level) + "] " +
+		// 	"["	+ getTimeStamp() + "] " +
+		// 	"[" + getProcessId() + "] " +
+		// 	"[" + getThreadId() + "] " +
+		// 	"[" + source_ + "] " +
+		// 	formatOutputMessage(message, args) + '\n';
 
-		this->log_destination_.write(log_line);
+		std::string line = this->output_format_;
+		formatLog(line, log_level, message, args);
+		line += '\n';
+		for (const auto &destination : log_destinations_) {
+			destination.write(line);
+		}
 	}
 
-	Logger::Logger(std::string source, ThreadSafeLogDestination &&logger, const Level lowest_level) :
-		source_(std::move(source)),
+	Logger::Logger(std::string source, const std::vector<ThreadSafeLogDestination> &dests, const Level lowest_level) :
 		lowest_level_(lowest_level),
-		log_destination_(std::move(logger)){
+		log_destinations_(dests),
+		source_(std::move(source)){
+
 	}
 
 	Logger Logger::clone(const std::string& source) const {
-		return {source, log_destination_.clone(), lowest_level_};
+		return {source, log_destinations_, lowest_level_};
 	}
 
+	void Logger::formatLog(std::string &log_line, const Level log_level, const char *message, va_list args) const {
+		for (auto i = 0; i < log_line.size(); ++i) {
+			if (log_line[i] == '\\') {
+				if (i >= log_line.size() - 1) {
+					log_line = "Message Wrong!\n";
+					return;
+				}
+
+				if (log_line[i + 1] == '@') {
+					log_line.replace(i, 2, "@");
+				}
+			}
+			else if (log_line[i] == '@') {
+				if (i >= log_line.size() - 1) {
+					log_line = "Message Wrong!\n";
+					return;
+				}
+				std::string to_replace = log_line.substr(i, 2);
+
+				if (log_line[i + 1] == 'p') {
+					to_replace = getProcessId();
+				}
+				else if (log_line[i + 1] == 'T') {
+					to_replace = getThreadId();
+				}
+				else if (log_line[i + 1] == 's') {
+					to_replace = source_;
+				}
+				else if (log_line[i + 1] == 'm') {
+					to_replace = formatOutputMessage(message, args);
+				}
+				else if (log_line[i + 1] == 't') {
+					to_replace = getTimeStamp();
+				}
+				else if (log_line[i + 1] == 'l') {
+					to_replace = level_to_str(log_level);
+				}
+				log_line.replace(i, 2, to_replace);
+				i += static_cast<int>(to_replace.size()) - 1;
+			}
+		}
+	}
 } // SorenLib

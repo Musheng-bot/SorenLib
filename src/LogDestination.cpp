@@ -69,12 +69,15 @@ namespace SorenLib {
 
 	ThreadSafeLogDestination ThreadSafeLogDestination::getInstance(Destination dest, const std::string &file) {
 		std::unique_lock lock(dests_mutex());
-		const char *log = file.c_str();
+		std::string log = file;
 		if (dest == STDOUT) {
 			log = "stdout";
 		}
 		else if (dest == STDERR) {
 			log = "stderr";
+		}
+		if (!dests().contains(log)) {
+			dests().emplace(log, ThreadSafeLogDestination(std::make_unique<FileLogDestination>(log), FILE));
 		}
 		return dests().at(std::string(log)).clone();
 	}
@@ -82,12 +85,13 @@ namespace SorenLib {
 	ThreadSafeLogDestination::~ThreadSafeLogDestination() = default;
 
 	ThreadSafeLogDestination ThreadSafeLogDestination::clone() const {
-		return ThreadSafeLogDestination(impl_->clone(), mutex_);
+		return ThreadSafeLogDestination(impl_->clone(), dest_, mutex_);
 	}
 
 	ThreadSafeLogDestination::ThreadSafeLogDestination(const ThreadSafeLogDestination &other) :
 		impl_(other.impl_->clone()),
-		mutex_(other.mutex_) {
+		mutex_(other.mutex_),
+		dest_(other.dest_){
 	}
 
 	ThreadSafeLogDestination & ThreadSafeLogDestination::operator=(const ThreadSafeLogDestination &other) {
@@ -107,17 +111,31 @@ namespace SorenLib {
 		this->impl_->write(message);
 	}
 
-	ThreadSafeLogDestination::ThreadSafeLogDestination(std::unique_ptr<LogDestination> impl,
-	                                                   std::shared_ptr<std::mutex> mutex) :
+	bool ThreadSafeLogDestination::operator==(const ThreadSafeLogDestination &other) const {
+		if (dest_ != other.dest_) {
+			return false;
+		}
+		if (dest_ == FILE) {
+			auto ptr1 = dynamic_cast<FileLogDestination*>(this->impl_.get());
+			auto ptr2 = dynamic_cast<FileLogDestination*>(other.impl_.get());
+			return ptr1->getLogFileName() == ptr2->getLogFileName();
+		}
+		return true;
+	}
+
+	ThreadSafeLogDestination::ThreadSafeLogDestination( std::unique_ptr<LogDestination> impl,
+														const Destination dest,
+														std::shared_ptr<std::mutex> mutex) :
 		impl_(std::move(impl)),
-		mutex_(std::move(mutex)) {
+		mutex_(std::move(mutex)),
+		dest_(dest){
 
 	}
 
 	std::map<std::string, ThreadSafeLogDestination> &ThreadSafeLogDestination::dests() {
 		static std::map<std::string, ThreadSafeLogDestination> dests = {
-			{"stdout", ThreadSafeLogDestination(std::make_unique<StdoutLogDestination>())},
-			{"error", ThreadSafeLogDestination(std::make_unique<ErrorLogDestination>())},
+			{"stdout", ThreadSafeLogDestination(std::make_unique<StdoutLogDestination>(), STDOUT)},
+			{"stderr", ThreadSafeLogDestination(std::make_unique<ErrorLogDestination>(), STDERR)},
 		};
 		return dests;
 	}

@@ -34,6 +34,7 @@ namespace SorenLib {
 			void write(const std::string& message) override;
 			std::unique_ptr<LogDestination> clone() const override;
 			const std::string &getLogFileName() const;
+
 		private:
 			std::fstream fout_;
 			std::string file_name_;
@@ -67,11 +68,14 @@ namespace SorenLib {
 			ThreadSafeLogDestination clone() const;
 			void write(const std::string& message) const;
 
+			bool operator==(const ThreadSafeLogDestination &other) const;
+
 		private:
 			std::unique_ptr<LogDestination> impl_;
 			mutable std::shared_ptr<std::mutex> mutex_;
+			Destination dest_;
 
-			explicit ThreadSafeLogDestination(std::unique_ptr<LogDestination> impl, std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>());
+			explicit ThreadSafeLogDestination(std::unique_ptr<LogDestination> impl, Destination destination, std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>());
 			static std::map<std::string, ThreadSafeLogDestination> &dests();
 			static std::mutex &dests_mutex();
 	};

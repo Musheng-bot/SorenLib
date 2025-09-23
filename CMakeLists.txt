@@ -13,8 +13,6 @@ add_library(SorenLib SHARED
 		include/internal/Publisher.hpp
 		include/internal/Subscriber.hpp
 		include/internal/Topic.hpp
-		src/Formatter.cpp
-		include/Formatter.hpp
 		include/Any.hpp
 )
 target_include_directories(SorenLib
