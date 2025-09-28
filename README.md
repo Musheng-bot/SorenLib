@@ -23,7 +23,7 @@ find_package(SorenLib REQUIRED)
 
 # 示例
 add_executable(main main.cpp)
-target_link_libraries(SorenLib PUBLIC SorenLib)
+target_link_libraries(main PUBLIC SorenLib)
 ```
 
 这样就可以正常使用`SorenLib`库了。

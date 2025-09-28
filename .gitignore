@@ -2,3 +2,4 @@ test.cpp
 cmake-build-debug
 .idea
 test.log
+build

@@ -1,19 +1,21 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(SorenLib VERSION 1.1 LANGUAGES CXX)
+project(SorenLib VERSION 1.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
 add_library(SorenLib SHARED
 		src/Thread.cpp
+
 		src/Logger.cpp
 		src/LogDestination.cpp
 
 		include/TopicInterface.hpp
-
 		include/internal/Publisher.hpp
 		include/internal/Subscriber.hpp
 		include/internal/Topic.hpp
+
 		include/Any.hpp
+		include/Result.hpp
 )
 target_include_directories(SorenLib
 	PUBLIC
@@ -23,10 +25,8 @@ target_include_directories(SorenLib
 		${CMAKE_CURRENT_SOURCE_DIR}/include/internal
 )
 
-add_executable(test test.cpp
-		src/LogDestination.cpp
-		src/Logger.cpp
-		include/internal/LogDestination.hpp
+add_executable(test
+		test.cpp
 )
 target_include_directories(test PRIVATE include include/internal)
 target_link_libraries(test PRIVATE SorenLib)
