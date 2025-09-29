@@ -16,6 +16,7 @@ add_library(SorenLib SHARED
 
 		include/Any.hpp
 		include/Result.hpp
+		include/Nullable.hpp
 )
 target_include_directories(SorenLib
 	PUBLIC

@@ -6,6 +6,7 @@
 #define SORENLIB_RESULT_HPP
 
 #include <memory>
+#include <cassert>
 
 namespace SorenLib {
 	template<typename ResultType, typename ErrorType>
@@ -15,14 +16,20 @@ namespace SorenLib {
 				return error_ != nullptr;
 			}
 			Result() = default;
-			Result(ResultType &&val, ErrorType &&err) :
-				value_(std::forward<ResultType>(val)),
-				error_(std::make_unique<ErrorType>(std::forward<ErrorType>(err))) {}
+			Result(const ResultType &val, const ErrorType &err) :
+				value_(val),
+				error_(std::make_unique<ErrorType>(err)) {}
+			Result(const ResultType &val) :
+				value_(val) {}
 			const ResultType &value() const {
 				return value_;
 			}
 			const ErrorType &error() const {
+				assert(isError() && "The result has no error!");
 				return *error_;
+			}
+			operator bool() const {
+				return isError();
 			}
 		private:
 			ResultType value_;
@@ -36,14 +43,17 @@ namespace SorenLib {
 				return error_ != nullptr;
 			}
 			Result() = default;
-			explicit Result(ErrorType &&err) :
-				error_(std::make_unique<ErrorType>(std::forward<ErrorType>(err))) {}
+			Result(const ErrorType &err) :
+				error_(std::make_unique<ErrorType>(err)) {}
 			const ErrorType &error() const {
+				assert(isError() && "The result has no error!");
 				return *error_;
+			}
+			operator bool() const {
+				return isError();
 			}
 		private:
 			std::unique_ptr<ErrorType> error_;
-
 	};
 } // SorenLib
 
